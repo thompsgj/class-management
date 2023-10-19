@@ -26,6 +26,9 @@ import { UserCountArgs } from "./UserCountArgs";
 import { UserFindManyArgs } from "./UserFindManyArgs";
 import { UserFindUniqueArgs } from "./UserFindUniqueArgs";
 import { User } from "./User";
+import { CourseFindManyArgs } from "../../course/base/CourseFindManyArgs";
+import { Course } from "../../course/base/Course";
+import { Grade } from "../../grade/base/Grade";
 import { UserService } from "../user.service";
 @common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => User)
@@ -86,7 +89,15 @@ export class UserResolverBase {
   async createUser(@graphql.Args() args: CreateUserArgs): Promise<User> {
     return await this.service.create({
       ...args,
-      data: args.data,
+      data: {
+        ...args.data,
+
+        grades: args.data.grades
+          ? {
+              connect: args.data.grades,
+            }
+          : undefined,
+      },
     });
   }
 
@@ -101,7 +112,15 @@ export class UserResolverBase {
     try {
       return await this.service.update({
         ...args,
-        data: args.data,
+        data: {
+          ...args.data,
+
+          grades: args.data.grades
+            ? {
+                connect: args.data.grades,
+              }
+            : undefined,
+        },
       });
     } catch (error) {
       if (isRecordNotFoundError(error)) {
@@ -130,5 +149,46 @@ export class UserResolverBase {
       }
       throw error;
     }
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @graphql.ResolveField(() => [Course], { name: "courseId" })
+  @nestAccessControl.UseRoles({
+    resource: "Course",
+    action: "read",
+    possession: "any",
+  })
+  async resolveFieldCourseId(
+    @graphql.Parent() parent: User,
+    @graphql.Args() args: CourseFindManyArgs
+  ): Promise<Course[]> {
+    const results = await this.service.findCourseId(parent.id, args);
+
+    if (!results) {
+      return [];
+    }
+
+    return results;
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @graphql.ResolveField(() => Grade, {
+    nullable: true,
+    name: "grades",
+  })
+  @nestAccessControl.UseRoles({
+    resource: "Grade",
+    action: "read",
+    possession: "any",
+  })
+  async resolveFieldGrades(
+    @graphql.Parent() parent: User
+  ): Promise<Grade | null> {
+    const result = await this.service.getGrades(parent.id);
+
+    if (!result) {
+      return null;
+    }
+    return result;
   }
 }

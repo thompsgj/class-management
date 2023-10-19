@@ -11,13 +11,28 @@ https://docs.amplication.com/how-to/custom-code
   */
 import { InputType, Field } from "@nestjs/graphql";
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsOptional } from "class-validator";
+import { CourseUpdateManyWithoutUsersInput } from "./CourseUpdateManyWithoutUsersInput";
+import { ValidateNested, IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { GradeWhereUniqueInput } from "../../grade/base/GradeWhereUniqueInput";
 import { IsJSONValue } from "@app/custom-validators";
 import { GraphQLJSON } from "graphql-type-json";
 import { InputJsonValue } from "../../types";
 
 @InputType()
 class UserUpdateInput {
+  @ApiProperty({
+    required: false,
+    type: () => CourseUpdateManyWithoutUsersInput,
+  })
+  @ValidateNested()
+  @Type(() => CourseUpdateManyWithoutUsersInput)
+  @IsOptional()
+  @Field(() => CourseUpdateManyWithoutUsersInput, {
+    nullable: true,
+  })
+  courseId?: CourseUpdateManyWithoutUsersInput;
+
   @ApiProperty({
     required: false,
     type: String,
@@ -28,6 +43,18 @@ class UserUpdateInput {
     nullable: true,
   })
   firstName?: string | null;
+
+  @ApiProperty({
+    required: false,
+    type: () => GradeWhereUniqueInput,
+  })
+  @ValidateNested()
+  @Type(() => GradeWhereUniqueInput)
+  @IsOptional()
+  @Field(() => GradeWhereUniqueInput, {
+    nullable: true,
+  })
+  grades?: GradeWhereUniqueInput | null;
 
   @ApiProperty({
     required: false,

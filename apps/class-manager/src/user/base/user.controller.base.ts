@@ -27,6 +27,9 @@ import { UserWhereUniqueInput } from "./UserWhereUniqueInput";
 import { UserFindManyArgs } from "./UserFindManyArgs";
 import { UserUpdateInput } from "./UserUpdateInput";
 import { User } from "./User";
+import { CourseFindManyArgs } from "../../course/base/CourseFindManyArgs";
+import { Course } from "../../course/base/Course";
+import { CourseWhereUniqueInput } from "../../course/base/CourseWhereUniqueInput";
 
 @swagger.ApiBearerAuth()
 @common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
@@ -48,10 +51,25 @@ export class UserControllerBase {
   })
   async create(@common.Body() data: UserCreateInput): Promise<User> {
     return await this.service.create({
-      data: data,
+      data: {
+        ...data,
+
+        grades: data.grades
+          ? {
+              connect: data.grades,
+            }
+          : undefined,
+      },
       select: {
         createdAt: true,
         firstName: true,
+
+        grades: {
+          select: {
+            id: true,
+          },
+        },
+
         id: true,
         lastName: true,
         roles: true,
@@ -80,6 +98,13 @@ export class UserControllerBase {
       select: {
         createdAt: true,
         firstName: true,
+
+        grades: {
+          select: {
+            id: true,
+          },
+        },
+
         id: true,
         lastName: true,
         roles: true,
@@ -109,6 +134,13 @@ export class UserControllerBase {
       select: {
         createdAt: true,
         firstName: true,
+
+        grades: {
+          select: {
+            id: true,
+          },
+        },
+
         id: true,
         lastName: true,
         roles: true,
@@ -143,10 +175,25 @@ export class UserControllerBase {
     try {
       return await this.service.update({
         where: params,
-        data: data,
+        data: {
+          ...data,
+
+          grades: data.grades
+            ? {
+                connect: data.grades,
+              }
+            : undefined,
+        },
         select: {
           createdAt: true,
           firstName: true,
+
+          grades: {
+            select: {
+              id: true,
+            },
+          },
+
           id: true,
           lastName: true,
           roles: true,
@@ -184,6 +231,13 @@ export class UserControllerBase {
         select: {
           createdAt: true,
           firstName: true,
+
+          grades: {
+            select: {
+              id: true,
+            },
+          },
+
           id: true,
           lastName: true,
           roles: true,
@@ -199,5 +253,108 @@ export class UserControllerBase {
       }
       throw error;
     }
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @common.Get("/:id/courseId")
+  @ApiNestedQuery(CourseFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Course",
+    action: "read",
+    possession: "any",
+  })
+  async findManyCourseId(
+    @common.Req() request: Request,
+    @common.Param() params: UserWhereUniqueInput
+  ): Promise<Course[]> {
+    const query = plainToClass(CourseFindManyArgs, request.query);
+    const results = await this.service.findCourseId(params.id, {
+      ...query,
+      select: {
+        createdAt: true,
+        description: true,
+        id: true,
+        name: true,
+        updatedAt: true,
+
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+    if (results === null) {
+      throw new errors.NotFoundException(
+        `No resource was found for ${JSON.stringify(params)}`
+      );
+    }
+    return results;
+  }
+
+  @common.Post("/:id/courseId")
+  @nestAccessControl.UseRoles({
+    resource: "User",
+    action: "update",
+    possession: "any",
+  })
+  async connectCourseId(
+    @common.Param() params: UserWhereUniqueInput,
+    @common.Body() body: CourseWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      courseId: {
+        connect: body,
+      },
+    };
+    await this.service.update({
+      where: params,
+      data,
+      select: { id: true },
+    });
+  }
+
+  @common.Patch("/:id/courseId")
+  @nestAccessControl.UseRoles({
+    resource: "User",
+    action: "update",
+    possession: "any",
+  })
+  async updateCourseId(
+    @common.Param() params: UserWhereUniqueInput,
+    @common.Body() body: CourseWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      courseId: {
+        set: body,
+      },
+    };
+    await this.service.update({
+      where: params,
+      data,
+      select: { id: true },
+    });
+  }
+
+  @common.Delete("/:id/courseId")
+  @nestAccessControl.UseRoles({
+    resource: "User",
+    action: "update",
+    possession: "any",
+  })
+  async disconnectCourseId(
+    @common.Param() params: UserWhereUniqueInput,
+    @common.Body() body: CourseWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      courseId: {
+        disconnect: body,
+      },
+    };
+    await this.service.update({
+      where: params,
+      data,
+      select: { id: true },
+    });
   }
 }
